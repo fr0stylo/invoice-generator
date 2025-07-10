@@ -1,0 +1,6 @@
+CLAUDE.md
+node_modules/
+contracts.yaml
+*.sqlite
+test-api.js
+invoices/
