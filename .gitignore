@@ -4,3 +4,6 @@ contracts.yaml
 *.sqlite
 test-api.js
 invoices/
+dist/
+build/
+.svelte-kit/

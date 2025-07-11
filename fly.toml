@@ -9,7 +9,7 @@ primary_region = 'waw'
 [build]
 
 [processes]
-  app = 'npm run server'
+  app = 'npm start'
 
 [[mounts]]
   source = 'data'

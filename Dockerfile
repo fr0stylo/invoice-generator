@@ -2,13 +2,19 @@ FROM node:lts-alpine
 
 WORKDIR /app
 
+# Copy package files for workspace setup
 COPY package*.json ./
+COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
 
-RUN npm ci --only=production
+# Install all dependencies (includes workspaces)
+RUN npm ci
 
+# Copy source code
 COPY . .
 
-RUN npm run build || echo "No build script found"
+# Build both frontend and backend
+RUN npm run build
 
 EXPOSE 3000
 

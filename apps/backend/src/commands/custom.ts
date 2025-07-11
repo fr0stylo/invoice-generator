@@ -1,6 +1,6 @@
 import { Effect } from 'effect/index';
 import path from 'path';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { InvoiceData } from '../types.js';
 import { readConfig } from '../effects/config.js';
 import { createDir } from '../effects/fs.js';
