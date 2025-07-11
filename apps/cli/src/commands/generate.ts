@@ -87,6 +87,7 @@ export const generateInvoices = (options: GenerateInvoicesOptions = {}) =>
         sender: {
           name: config.owner.name,
           entityNumber: config.owner.entityNumber,
+          entityType: config.owner.entityType,
           address: config.owner.address,
           city: config.owner.city,
           country: config.owner.country,

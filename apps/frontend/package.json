@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "node --test --import=tsx src/**/*.test.ts"
   },
   "keywords": ["invoice", "svelte", "frontend", "ui"],
   "author": "",
@@ -22,6 +23,7 @@
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.8",
     "tailwindcss": "^3.4.16",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vite": "^6.0.3"
   }

@@ -1,6 +1,41 @@
+# Development files
 CLAUDE.md
-node_modules/
-contracts.yaml
-*.sqlite
+*.md
+.git/
+.gitignore
 test-api.js
 invoices/
+
+# Build artifacts (will be copied from build stage)
+node_modules/
+apps/*/dist/
+apps/*/build/
+apps/frontend/.svelte-kit/
+
+# Database files (runtime will handle these)
+*.sqlite
+*.db
+
+# Keep contracts.yaml as it's needed for configuration
+
+# Test files
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+
+# Development tools
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# CLI and Scripts apps (not needed for production web server)
+apps/cli/
+apps/scripts/
+
+# OS files
+.DS_Store
+Thumbs.db

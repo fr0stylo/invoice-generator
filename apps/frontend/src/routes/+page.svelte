@@ -10,6 +10,7 @@
     sender: {
       name: '',
       entityNumber: '',
+      entityType: 'entrepreneurship',
       address: '',
       city: '',
       country: '',
@@ -245,6 +246,32 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
+
+            <fieldset>
+              <legend class="block text-sm font-medium text-gray-700 mb-2"
+                >Entity Type *</legend
+              >
+              <div class="flex space-x-4">
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    bind:group={formData.sender.entityType}
+                    value="entrepreneurship"
+                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">Individual Entrepreneurship</span>
+                </label>
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    bind:group={formData.sender.entityType}
+                    value="company"
+                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">Company</span>
+                </label>
+              </div>
+            </fieldset>
 
             <div>
               <label

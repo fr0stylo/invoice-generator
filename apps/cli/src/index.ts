@@ -3,8 +3,8 @@
 import { Effect } from 'effect/index';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { generateInvoices } from './commands/generate';
-import { createCustomInvoice, createInteractiveCustomInvoice } from './commands/custom';
+import { generateInvoices } from './commands/generate.js';
+import { createCustomInvoice, createInteractiveCustomInvoice } from './commands/custom.js';
 
 const cli = yargs(hideBin(process.argv))
   .scriptName('invoice-cli')

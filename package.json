@@ -5,16 +5,28 @@
   "private": true,
   "workspaces": [
     "apps/backend",
-    "apps/frontend"
+    "apps/frontend",
+    "apps/cli",
+    "apps/scripts"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=apps/backend",
     "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:cli": "npm run dev --workspace=apps/cli",
+    "dev:scripts": "npm run dev --workspace=apps/scripts",
     "build:backend": "npm run build --workspace=apps/backend",
     "build:frontend": "npm run build --workspace=apps/frontend",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build:cli": "npm run build --workspace=apps/cli",
+    "build:scripts": "npm run build --workspace=apps/scripts",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:cli && npm run build:scripts",
     "start": "npm run start --workspace=apps/backend",
-    "cli": "npm run cli --workspace=apps/backend"
+    "cli": "npm run start --workspace=apps/cli",
+    "generate": "npm run generate --workspace=apps/scripts",
+    "test": "npm run test --workspace=apps/backend && npm run test --workspace=apps/frontend && npm run test --workspace=apps/cli && npm run test --workspace=apps/scripts",
+    "test:backend": "npm run test --workspace=apps/backend",
+    "test:frontend": "npm run test --workspace=apps/frontend",
+    "test:cli": "npm run test --workspace=apps/cli",
+    "test:scripts": "npm run test --workspace=apps/scripts"
   },
   "keywords": ["invoice", "pdf", "generator", "typescript", "svelte"],
   "author": "",
