@@ -9,7 +9,7 @@ primary_region = 'waw'
 [build]
 
 [processes]
-  app = 'npm start'
+  app = 'node apps/backend/dist/server.js'
 
 [[mounts]]
   source = 'data'

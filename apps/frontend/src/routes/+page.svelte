@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import SenderForm from '../lib/components/SenderForm.svelte';
+  import BillToForm from '../lib/components/BillToForm.svelte';
+  import InvoiceDetails from '../lib/components/InvoiceDetails.svelte';
+  import InvoiceItems from '../lib/components/InvoiceItems.svelte';
+  import { db, type MyBusiness, type Client, type LineItem } from '$lib/database';
   const browser = typeof window !== 'undefined';
 
   let formData = $state({
@@ -10,7 +15,7 @@
     sender: {
       name: '',
       entityNumber: '',
-      entityType: 'entrepreneurship',
+      entityType: 'entrepreneurship' as 'entrepreneurship' | 'company',
       address: '',
       city: '',
       country: '',
@@ -39,6 +44,12 @@
   let loading = $state(false);
   let errorMessage = $state('');
   let successMessage = $state('');
+  let showSenderEntityManager = $state(false);
+  let showClientEntityManager = $state(false);
+  let showLineItemManager = $state(false);
+  let selectedMyBusiness: MyBusiness | null = $state(null);
+  let selectedClient: Client | null = $state(null);
+  let selectedLineItems: LineItem[] = $state([]);
 
   const STORAGE_KEY = 'invoice-form-data';
 
@@ -84,25 +95,6 @@
     }
   });
 
-  function addItem() {
-    formData.items = [
-      ...formData.items,
-      {
-        description: '',
-        period: '',
-        qty: 1,
-        unitPrice: 0,
-      },
-    ];
-  }
-
-  function removeItem(index: number) {
-    if (formData.items.length > 1) {
-      formData.items = formData.items.filter((_, i) => i !== index);
-    } else {
-      showError('At least one item is required');
-    }
-  }
 
   function showError(message: string) {
     errorMessage = message;
@@ -148,6 +140,96 @@
     return errors;
   }
 
+  function onMyBusinessSelect(entity: MyBusiness | null) {
+    selectedMyBusiness = entity;
+    if (entity) {
+      formData.sender = {
+        name: entity.name,
+        entityNumber: entity.entityNumber,
+        entityType: entity.entityType,
+        address: entity.address,
+        city: entity.city,
+        country: entity.country,
+        phone: entity.phone || '',
+        iban: entity.iban || ''
+      };
+    }
+  }
+
+  function onClientSelect(entity: Client | null) {
+    selectedClient = entity;
+    if (entity) {
+      formData.billTo = {
+        name: entity.name,
+        companyNumber: entity.companyNumber || '',
+        address: entity.address,
+        city: entity.city,
+        state: entity.state || '',
+        zip: entity.zip || '',
+        country: entity.country
+      };
+    }
+  }
+
+  function onLineItemsSelect(items: LineItem[]) {
+    selectedLineItems = items;
+    // Update form items with selected line items
+    formData.items = items.map(item => ({
+      description: item.description,
+      period: '',
+      qty: item.defaultQuantity,
+      unitPrice: item.unitPrice
+    }));
+  }
+
+  async function saveEntitiesToDatabase() {
+    try {
+      if (!selectedMyBusiness && formData.sender.name) {
+        const businessData: Omit<MyBusiness, 'id'> = {
+          ...formData.sender,
+          entityType: formData.sender.entityType as 'entrepreneurship' | 'company',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        const businessId = await db.myBusinesses.add(businessData);
+        selectedMyBusiness = { ...businessData, id: businessId };
+      }
+
+      if (!selectedClient && formData.billTo.name) {
+        const clientData = {
+          ...formData.billTo,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        const clientId = await db.clients.add(clientData);
+        selectedClient = { ...clientData, id: clientId };
+      }
+
+      const totalAmount = formData.items.reduce((sum, item) => sum + (item.qty * item.unitPrice), 0);
+      
+      const invoiceData = {
+        invoiceNumber: formData.invoiceNumber,
+        issueDate: formData.issueDate,
+        dueDate: formData.dueDate,
+        taxRate: formData.taxRate,
+        myBusinessId: selectedMyBusiness?.id!,
+        clientId: selectedClient?.id!,
+        items: formData.items.filter(item => item.description && !isNaN(item.qty) && !isNaN(item.unitPrice)).map(item => ({
+          ...item,
+          unit: 'units'
+        })),
+        totalAmount: totalAmount,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      await db.invoices.add(invoiceData);
+    } catch (error) {
+      console.error('Error saving entities to database:', error);
+      throw error;
+    }
+  }
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
     errorMessage = '';
@@ -162,6 +244,8 @@
     loading = true;
 
     try {
+      await saveEntitiesToDatabase();
+
       const payload = {
         ...formData,
         items: formData.items.filter(
@@ -206,447 +290,58 @@
 
 <div class="min-h-screen bg-gradient-to-br from-purple-300 to-blue-300 p-5">
   <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-8">
-    <h1 class="text-4xl font-normal text-center text-gray-800 mb-8">
-      Invoice Generator
-    </h1>
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-normal text-gray-800">
+        Invoice Generator
+      </h1>
+    </div>
+
+
 
     <form onsubmit={handleSubmit}>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Sender Information -->
-        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <h2 class="text-2xl font-medium text-gray-700 mb-6">From (Sender)</h2>
-
-          <div class="space-y-4">
-            <div>
-              <label
-                for="senderName"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Name *</label
-              >
-              <input
-                id="senderName"
-                type="text"
-                bind:value={formData.sender.name}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="senderEntityNumber"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Entity Number *</label
-              >
-              <input
-                id="senderEntityNumber"
-                type="text"
-                bind:value={formData.sender.entityNumber}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <fieldset>
-              <legend class="block text-sm font-medium text-gray-700 mb-2"
-                >Entity Type *</legend
-              >
-              <div class="flex space-x-4">
-                <label class="flex items-center">
-                  <input
-                    type="radio"
-                    bind:group={formData.sender.entityType}
-                    value="entrepreneurship"
-                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">Individual Entrepreneurship</span>
-                </label>
-                <label class="flex items-center">
-                  <input
-                    type="radio"
-                    bind:group={formData.sender.entityType}
-                    value="company"
-                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">Company</span>
-                </label>
-              </div>
-            </fieldset>
-
-            <div>
-              <label
-                for="senderAddress"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Address *</label
-              >
-              <input
-                id="senderAddress"
-                type="text"
-                bind:value={formData.sender.address}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="senderCity"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >City *</label
-              >
-              <input
-                id="senderCity"
-                type="text"
-                bind:value={formData.sender.city}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="senderCountry"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Country *</label
-              >
-              <input
-                id="senderCountry"
-                type="text"
-                bind:value={formData.sender.country}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="senderPhone"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Phone</label
-              >
-              <input
-                id="senderPhone"
-                type="tel"
-                bind:value={formData.sender.phone}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="senderIban"
-                class="block text-sm font-medium text-gray-700 mb-1">IBAN</label
-              >
-              <input
-                id="senderIban"
-                type="text"
-                bind:value={formData.sender.iban}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Bill To Information -->
-        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <h2 class="text-2xl font-medium text-gray-700 mb-6">To (Bill To)</h2>
-
-          <div class="space-y-4">
-            <div>
-              <label
-                for="billToName"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Name *</label
-              >
-              <input
-                id="billToName"
-                type="text"
-                bind:value={formData.billTo.name}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToCompanyNumber"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Company Number</label
-              >
-              <input
-                id="billToCompanyNumber"
-                type="text"
-                bind:value={formData.billTo.companyNumber}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToAddress"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Address *</label
-              >
-              <input
-                id="billToAddress"
-                type="text"
-                bind:value={formData.billTo.address}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToCity"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >City *</label
-              >
-              <input
-                id="billToCity"
-                type="text"
-                bind:value={formData.billTo.city}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToState"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >State</label
-              >
-              <input
-                id="billToState"
-                type="text"
-                bind:value={formData.billTo.state}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToZip"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >ZIP Code</label
-              >
-              <input
-                id="billToZip"
-                type="text"
-                bind:value={formData.billTo.zip}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                for="billToCountry"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Country *</label
-              >
-              <input
-                id="billToCountry"
-                type="text"
-                bind:value={formData.billTo.country}
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
+        <SenderForm
+          senderData={formData.sender}
+          selectedMyBusiness={selectedMyBusiness}
+          showEntityManager={showSenderEntityManager}
+          onSenderDataChange={(data) => formData.sender = { ...data, entityType: (data.entityType === 'company' ? 'company' : 'entrepreneurship') as 'entrepreneurship' | 'company' }}
+          onMyBusinessSelect={onMyBusinessSelect}
+          onToggleEntityManager={() => showSenderEntityManager = !showSenderEntityManager}
+        />
+        
+        <BillToForm
+          billToData={formData.billTo}
+          selectedClient={selectedClient}
+          showEntityManager={showClientEntityManager}
+          onBillToDataChange={(data) => formData.billTo = data}
+          onClientSelect={onClientSelect}
+          onToggleEntityManager={() => showClientEntityManager = !showClientEntityManager}
+        />
       </div>
 
-      <!-- Invoice Details -->
-      <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-8">
-        <h2 class="text-2xl font-medium text-gray-700 mb-6">Invoice Details</h2>
+      <InvoiceDetails
+        invoiceData={{
+          invoiceNumber: formData.invoiceNumber,
+          taxRate: formData.taxRate,
+          issueDate: formData.issueDate,
+          dueDate: formData.dueDate
+        }}
+        onInvoiceDataChange={(data) => {
+          formData.invoiceNumber = data.invoiceNumber;
+          formData.taxRate = data.taxRate;
+          formData.issueDate = data.issueDate;
+          formData.dueDate = data.dueDate;
+        }}
+      />
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label
-              for="invoiceNumber"
-              class="block text-sm font-medium text-gray-700 mb-1"
-              >Invoice Number *</label
-            >
-            <input
-              id="invoiceNumber"
-              type="text"
-              bind:value={formData.invoiceNumber}
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label
-              for="taxRate"
-              class="block text-sm font-medium text-gray-700 mb-1"
-              >Tax Rate (%)</label
-            >
-            <input
-              id="taxRate"
-              type="number"
-              bind:value={formData.taxRate}
-              min="0"
-              max="100"
-              step="0.01"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label
-              for="issueDate"
-              class="block text-sm font-medium text-gray-700 mb-1"
-              >Issue Date *</label
-            >
-            <input
-              id="issueDate"
-              type="date"
-              bind:value={formData.issueDate}
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label
-              for="dueDate"
-              class="block text-sm font-medium text-gray-700 mb-1"
-              >Due Date *</label
-            >
-            <input
-              id="dueDate"
-              type="date"
-              bind:value={formData.dueDate}
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Invoice Items -->
-      <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-8">
-        <h2 class="text-2xl font-medium text-gray-700 mb-6">Invoice Items</h2>
-
-        <div class="space-y-4">
-          {#each formData.items as item, index}
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-              <div class="md:col-span-4">
-                <label
-                  for="itemDescription{index}"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Description *</label
-                >
-                <input
-                  id="itemDescription{index}"
-                  type="text"
-                  bind:value={item.description}
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div class="md:col-span-3">
-                <label
-                  for="itemPeriod{index}"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Period</label
-                >
-                <input
-                  id="itemPeriod{index}"
-                  type="text"
-                  bind:value={item.period}
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div class="md:col-span-2">
-                <label
-                  for="itemQty{index}"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Qty *</label
-                >
-                <input
-                  id="itemQty{index}"
-                  type="number"
-                  bind:value={item.qty}
-                  min="0.01"
-                  step="0.01"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div class="md:col-span-2">
-                <label
-                  for="itemPrice{index}"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Price (€) *</label
-                >
-                <input
-                  id="itemPrice{index}"
-                  type="number"
-                  bind:value={item.unitPrice}
-                  min="0"
-                  step="0.01"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div class="md:col-span-1 pb-2 flex items-center justify-center">
-                <button
-                  type="button"
-                  onclick={() => removeItem(index)}
-                  class="text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                  aria-label="Remove item"
-                  title="Remove item"
-                >
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M20 12H4"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          {/each}
-
-          <!-- Add Item Button -->
-          <div class="pt-4 border-t items-center border-gray-300">
-            <button
-              type="button"
-              onclick={addItem}
-              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                ></path>
-              </svg>
-              Add Item
-            </button>
-          </div>
-        </div>
-      </div>
+      <InvoiceItems
+        items={formData.items}
+        selectedLineItems={selectedLineItems}
+        showLineItemManager={showLineItemManager}
+        onItemsChange={(items) => formData.items = items}
+        onLineItemsSelect={onLineItemsSelect}
+        onToggleLineItemManager={() => showLineItemManager = !showLineItemManager}
+      />
 
       <!-- Generate Button -->
       <div class="text-center mt-8 pt-8 border-t border-gray-200">

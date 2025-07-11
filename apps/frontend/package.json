@@ -11,7 +11,12 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "node --test --import=tsx src/**/*.test.ts"
   },
-  "keywords": ["invoice", "svelte", "frontend", "ui"],
+  "keywords": [
+    "invoice",
+    "svelte",
+    "frontend",
+    "ui"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -26,5 +31,8 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vite": "^6.0.3"
+  },
+  "dependencies": {
+    "dexie": "^4.0.11"
   }
 }
