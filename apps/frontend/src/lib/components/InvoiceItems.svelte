@@ -1,6 +1,8 @@
 <script lang="ts">
   import LineItemManager from './LineItemManager.svelte';
+  import ValidatedField from './ValidatedField.svelte';
   import type { LineItem } from '$lib/database';
+  import { lineItemSchema, validateSection } from '$lib/validation';
 
   interface InvoiceItem {
     description: string;
@@ -52,6 +54,11 @@
     newItems[index] = { ...newItems[index], [field]: value };
     onItemsChange(newItems);
   }
+
+  function getItemFieldError(): string {
+    // For now, return empty string - will be replaced with store-based validation
+    return '';
+  }
 </script>
 
 <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-8">
@@ -66,71 +73,57 @@
 
   <div class="space-y-4">
     {#each items as item, index}
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
         <div class="md:col-span-4">
-          <label
-            for="itemDescription{index}"
-            class="block text-sm font-medium text-gray-700 mb-1"
-          >Description *</label>
-          <input
+          <ValidatedField
             id="itemDescription{index}"
-            type="text"
+            label="Description"
             value={item.description}
-            oninput={(e) => updateItem(index, 'description', (e.target as HTMLInputElement).value)}
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            required={true}
+            fieldPath="items.{index}.description"
+            oninput={(value) => updateItem(index, 'description', value)}
           />
         </div>
 
         <div class="md:col-span-3">
-          <label
-            for="itemPeriod{index}"
-            class="block text-sm font-medium text-gray-700 mb-1"
-          >Period</label>
-          <input
+          <ValidatedField
             id="itemPeriod{index}"
-            type="text"
+            label="Period"
             value={item.period}
-            oninput={(e) => updateItem(index, 'period', (e.target as HTMLInputElement).value)}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            fieldPath="items.{index}.period"
+            oninput={(value) => updateItem(index, 'period', value)}
           />
         </div>
 
         <div class="md:col-span-2">
-          <label
-            for="itemQty{index}"
-            class="block text-sm font-medium text-gray-700 mb-1"
-          >Qty *</label>
-          <input
+          <ValidatedField
             id="itemQty{index}"
+            label="Qty"
             type="number"
             value={item.qty}
-            oninput={(e) => updateItem(index, 'qty', parseFloat((e.target as HTMLInputElement).value) || 1)}
-            min="0.01"
-            step="0.01"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            required={true}
+            min={0.01}
+            step={0.01}
+            fieldPath="items.{index}.qty"
+            oninput={(value) => updateItem(index, 'qty', value)}
           />
         </div>
 
         <div class="md:col-span-2">
-          <label
-            for="itemPrice{index}"
-            class="block text-sm font-medium text-gray-700 mb-1"
-          >Price (€) *</label>
-          <input
+          <ValidatedField
             id="itemPrice{index}"
+            label="Price (€)"
             type="number"
             value={item.unitPrice}
-            oninput={(e) => updateItem(index, 'unitPrice', parseFloat((e.target as HTMLInputElement).value) || 0)}
-            min="0"
-            step="0.01"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            required={true}
+            min={0}
+            step={0.01}
+            fieldPath="items.{index}.unitPrice"
+            oninput={(value) => updateItem(index, 'unitPrice', value)}
           />
         </div>
 
-        <div class="md:col-span-1 pb-2 flex items-center justify-center">
+        <div class="md:col-span-1 flex items-center justify-center">
           <button
             type="button"
             onclick={() => removeItem(index)}
@@ -181,7 +174,7 @@
       <button
         type="button"
         onclick={onToggleLineItemManager}
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors text-sm flex items-center justify-center gap-2"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center gap-2"
       >
         <svg
           class="w-4 h-4"

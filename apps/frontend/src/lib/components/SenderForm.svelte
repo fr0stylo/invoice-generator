@@ -1,5 +1,7 @@
 <script lang="ts">
   import EntityManager from './EntityManager.svelte';
+  import ValidatedField from './ValidatedField.svelte';
+  import RadioGroup from './RadioGroup.svelte';
   import type { MyBusiness } from '$lib/database';
 
   interface Props {
@@ -20,13 +22,13 @@
     onToggleEntityManager?: () => void;
   }
 
-  const { 
-    senderData, 
-    selectedMyBusiness = null, 
+  const {
+    senderData,
+    selectedMyBusiness = null,
     showEntityManager = false,
     onSenderDataChange = () => {},
     onMyBusinessSelect = () => {},
-    onToggleEntityManager = () => {}
+    onToggleEntityManager = () => {},
   }: Props = $props();
 
   function updateSenderData(field: string, value: any) {
@@ -46,9 +48,9 @@
       <button
         type="button"
         onclick={onToggleEntityManager}
-        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md transition-colors text-sm"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors text-sm"
       >
-        {showEntityManager ? 'Hide' : 'Show'} Contacts
+        {showEntityManager ? 'Hide' : 'Show'} Business
       </button>
     </div>
   </div>
@@ -64,133 +66,77 @@
   {/if}
 
   <div class="space-y-4">
-    <div>
-      <label
-        for="senderName"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Name *</label>
-      <input
-        id="senderName"
-        type="text"
-        value={senderData.name}
-        oninput={(e) => updateSenderData('name', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderName"
+      label="Name"
+      value={senderData.name}
+      required={true}
+      fieldPath="sender.name"
+      oninput={(value) => updateSenderData('name', value)}
+    />
 
-    <div>
-      <label
-        for="senderEntityNumber"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Entity Number *</label>
-      <input
-        id="senderEntityNumber"
-        type="text"
-        value={senderData.entityNumber}
-        oninput={(e) => updateSenderData('entityNumber', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderEntityNumber"
+      label="Entity Number"
+      value={senderData.entityNumber}
+      required={true}
+      fieldPath="sender.entityNumber"
+      oninput={(value) => updateSenderData('entityNumber', value)}
+    />
 
-    <fieldset>
-      <legend class="block text-sm font-medium text-gray-700 mb-2">Entity Type *</legend>
-      <div class="flex space-x-4">
-        <label class="flex items-center">
-          <input
-            type="radio"
-            value="entrepreneurship"
-            checked={senderData.entityType === 'entrepreneurship'}
-            onchange={() => updateSenderData('entityType', 'entrepreneurship')}
-            class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-          />
-          <span class="ml-2 text-sm text-gray-700">Individual Entrepreneurship</span>
-        </label>
-        <label class="flex items-center">
-          <input
-            type="radio"
-            value="company"
-            checked={senderData.entityType === 'company'}
-            onchange={() => updateSenderData('entityType', 'company')}
-            class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-          />
-          <span class="ml-2 text-sm text-gray-700">Company</span>
-        </label>
-      </div>
-    </fieldset>
+    <RadioGroup
+      legend="Entity Type"
+      options={[
+        { value: 'entrepreneurship', label: 'Individual Entrepreneurship' },
+        { value: 'company', label: 'Company' },
+      ]}
+      value={senderData.entityType}
+      required={true}
+      onchange={(value) => updateSenderData('entityType', value)}
+    />
 
-    <div>
-      <label
-        for="senderAddress"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Address *</label>
-      <input
-        id="senderAddress"
-        type="text"
-        value={senderData.address}
-        oninput={(e) => updateSenderData('address', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderAddress"
+      label="Address"
+      value={senderData.address}
+      required={true}
+      fieldPath="sender.address"
+      oninput={(value) => updateSenderData('address', value)}
+    />
 
-    <div>
-      <label
-        for="senderCity"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >City *</label>
-      <input
-        id="senderCity"
-        type="text"
-        value={senderData.city}
-        oninput={(e) => updateSenderData('city', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderCity"
+      label="City"
+      value={senderData.city}
+      required={true}
+      fieldPath="sender.city"
+      oninput={(value) => updateSenderData('city', value)}
+    />
 
-    <div>
-      <label
-        for="senderCountry"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Country *</label>
-      <input
-        id="senderCountry"
-        type="text"
-        value={senderData.country}
-        oninput={(e) => updateSenderData('country', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderCountry"
+      label="Country"
+      value={senderData.country}
+      required={true}
+      fieldPath="sender.country"
+      oninput={(value) => updateSenderData('country', value)}
+    />
 
-    <div>
-      <label
-        for="senderPhone"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Phone</label>
-      <input
-        id="senderPhone"
-        type="tel"
-        value={senderData.phone}
-        oninput={(e) => updateSenderData('phone', (e.target as HTMLInputElement).value)}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderPhone"
+      label="Phone"
+      type="tel"
+      value={senderData.phone}
+      fieldPath="sender.phone"
+      oninput={(value) => updateSenderData('phone', value)}
+    />
 
-    <div>
-      <label
-        for="senderIban"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >IBAN</label>
-      <input
-        id="senderIban"
-        type="text"
-        value={senderData.iban}
-        oninput={(e) => updateSenderData('iban', (e.target as HTMLInputElement).value)}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="senderIban"
+      label="IBAN"
+      value={senderData.iban}
+      fieldPath="sender.iban"
+      oninput={(value) => updateSenderData('iban', value)}
+    />
   </div>
 </div>

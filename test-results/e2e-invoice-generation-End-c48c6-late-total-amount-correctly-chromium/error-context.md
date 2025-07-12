@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- heading "Invoice Generator" [level=1]
+- button "Invoice History":
+  - img
+  - text: Invoice History
+- heading "From (My Business)" [level=2]
+- button "Show Business"
+- text: Name *
+- textbox "Name *"
+- text: Entity Number *
+- textbox "Entity Number *"
+- group "Entity Type *":
+  - text: Entity Type *
+  - radio "Individual Entrepreneurship" [checked]
+  - text: Individual Entrepreneurship
+  - radio "Company"
+  - text: Company
+- text: Address *
+- textbox "Address *"
+- text: City *
+- textbox "City *"
+- text: Country *
+- textbox "Country *"
+- text: Phone
+- textbox "Phone"
+- text: IBAN
+- textbox "IBAN"
+- heading "To (Client)" [level=2]
+- button "Show Client"
+- text: Name *
+- textbox "Name *"
+- text: Company Number
+- textbox "Company Number": CC987654321
+- text: Address *
+- textbox "Address *"
+- text: City *
+- textbox "City *"
+- text: State
+- textbox "State": Client State
+- text: ZIP Code
+- textbox "ZIP Code": "12345"
+- text: Country *
+- textbox "Country *": Estonia
+- heading "Invoice Details" [level=2]
+- text: Invoice Number *
+- textbox "Invoice Number *": INV-2025-07-12-001
+- button "Edit template":
+  - img
+- button "Refresh invoice number":
+  - img
+- text: Tax Rate (%)
+- spinbutton "Tax Rate (%)": "21"
+- text: Issue Date *
+- textbox "Issue Date *": 2025-07-12
+- text: Due Date *
+- textbox "Due Date *": 2025-08-11
+- heading "Invoice Items" [level=2]
+- text: Description *
+- textbox "Description *": Web Development Services
+- text: Period
+- textbox "Period": July 2025
+- text: Qty *
+- spinbutton "Qty *": "40"
+- text: Price (€) *
+- spinbutton "Price (€) *": "75"
+- button "Remove item":
+  - img
+- text: Description *
+- textbox "Description *": Project Management
+- text: Period
+- textbox "Period": July 2025
+- text: Qty *
+- spinbutton "Qty *": "10"
+- text: Price (€) *
+- spinbutton "Price (€) *": "120"
+- button "Remove item":
+  - img
+- button "Add Item":
+  - img
+  - text: Add Item
+- button "Manage Line Items":
+  - img
+  - text: Manage Line Items
+- heading "Invoice" [level=1]
+- table:
+  - rowgroup:
+    - 'row "Invoice Number: INV-2025-07-12-001"':
+      - cell "Invoice Number:"
+      - cell "INV-2025-07-12-001"
+    - 'row "Issue Date: 2025-07-12"':
+      - cell "Issue Date:"
+      - cell "2025-07-12"
+    - 'row "Due Date: 2025-08-11"':
+      - cell "Due Date:"
+      - cell "2025-08-11"
+- heading "Issued To" [level=3]
+- text: "Company Number: CC987654321 , Client State 12345 Estonia"
+- heading "From" [level=3]
+- text: "Individual entrepreneurship number: ,"
+- table:
+  - rowgroup:
+    - row "Description Qty Unit Price Amount":
+      - cell "Description"
+      - cell "Qty"
+      - cell "Unit Price"
+      - cell "Amount"
+  - rowgroup:
+    - row "Web Development Services July 2025 40 €75.00 €3000.00":
+      - cell "Web Development Services July 2025"
+      - cell "40"
+      - cell "€75.00"
+      - cell "€3000.00"
+    - row "Project Management July 2025 10 €120.00 €1200.00":
+      - cell "Project Management July 2025"
+      - cell "10"
+      - cell "€120.00"
+      - cell "€1200.00"
+- table:
+  - rowgroup:
+    - row "Subtotal €4200.00":
+      - cell
+      - cell "Subtotal"
+      - cell "€4200.00"
+    - row "Tax (21%) €882.00":
+      - cell
+      - cell "Tax (21%)"
+      - cell "€882.00"
+    - row "Total €5082.00":
+      - cell
+      - cell "Total"
+      - cell "€5082.00"
+    - row "Amount Due €5082.00":
+      - cell
+      - cell "Amount Due"
+      - cell "€5082.00"
+- button "Hide Preview"
+- button "Generate Invoice PDF"
+```

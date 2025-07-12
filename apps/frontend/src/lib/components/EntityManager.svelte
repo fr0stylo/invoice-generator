@@ -217,7 +217,12 @@
           class:ring-2={selectedEntity?.id === entity.id}
           class:ring-blue-500={selectedEntity?.id === entity.id}
         >
-          <div class="flex-1 cursor-pointer" onclick={() => selectEntity(entity)}>
+          <button 
+            type="button"
+            class="flex-1 cursor-pointer text-left w-full" 
+            onclick={() => selectEntity(entity)}
+            onkeydown={(e) => e.key === 'Enter' && selectEntity(entity)}
+          >
             <div class="font-medium text-gray-900">{entity.name}</div>
             <div class="text-sm text-gray-500">
               {entity.address}, {entity.city}, {entity.country}
@@ -232,7 +237,7 @@
                 {(entity as Client).companyNumber}
               </div>
             {/if}
-          </div>
+          </button>
           <div class="flex space-x-2">
             <button
               type="button"
@@ -269,8 +274,9 @@
       <form onsubmit={(e) => { e.preventDefault(); saveEntity(); }}>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label for="entityName" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
             <input
+              id="entityName"
               type="text"
               bind:value={formData.name}
               required
@@ -280,8 +286,9 @@
 
           {#if entityType === 'myBusiness'}
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Entity Number *</label>
+              <label for="entityNumber" class="block text-sm font-medium text-gray-700 mb-1">Entity Number *</label>
               <input
+                id="entityNumber"
                 type="text"
                 bind:value={formData.entityNumber}
                 required
@@ -314,8 +321,9 @@
             </fieldset>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label for="entityPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <input
+                id="entityPhone"
                 type="tel"
                 bind:value={formData.phone}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -323,8 +331,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+              <label for="entityIban" class="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
               <input
+                id="entityIban"
                 type="text"
                 bind:value={formData.iban}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -332,8 +341,9 @@
             </div>
           {:else}
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Company Number</label>
+              <label for="entityCompanyNumber" class="block text-sm font-medium text-gray-700 mb-1">Company Number</label>
               <input
+                id="entityCompanyNumber"
                 type="text"
                 bind:value={formData.companyNumber}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -341,8 +351,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <label for="entityState" class="block text-sm font-medium text-gray-700 mb-1">State</label>
               <input
+                id="entityState"
                 type="text"
                 bind:value={formData.state}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -350,8 +361,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+              <label for="entityZip" class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
               <input
+                id="entityZip"
                 type="text"
                 bind:value={formData.zip}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -360,8 +372,9 @@
           {/if}
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+            <label for="entityAddress" class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
             <input
+              id="entityAddress"
               type="text"
               bind:value={formData.address}
               required
@@ -370,8 +383,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">City *</label>
+            <label for="entityCity" class="block text-sm font-medium text-gray-700 mb-1">City *</label>
             <input
+              id="entityCity"
               type="text"
               bind:value={formData.city}
               required
@@ -380,8 +394,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+            <label for="entityCountry" class="block text-sm font-medium text-gray-700 mb-1">Country *</label>
             <input
+              id="entityCountry"
               type="text"
               bind:value={formData.country}
               required

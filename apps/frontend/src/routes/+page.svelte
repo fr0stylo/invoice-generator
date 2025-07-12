@@ -4,7 +4,29 @@
   import BillToForm from '../lib/components/BillToForm.svelte';
   import InvoiceDetails from '../lib/components/InvoiceDetails.svelte';
   import InvoiceItems from '../lib/components/InvoiceItems.svelte';
-  import { db, type MyBusiness, type Client, type LineItem } from '$lib/database';
+  import InvoicePreview from '../lib/components/InvoicePreview.svelte';
+  import InvoiceList from '../lib/components/InvoiceList.svelte';
+  import ToastContainer from '../lib/components/ToastContainer.svelte';
+  import {
+    db,
+    type MyBusiness,
+    type Client,
+    type LineItem,
+  } from '$lib/database';
+  import {
+    validationErrors,
+    showValidationErrors as showValidationStore,
+    validateFormData,
+    validateSingleField,
+    clearAllErrors,
+  } from '$lib/stores/validation';
+  import { showSuccess, showError } from '$lib/stores/toast';
+  import { 
+    generateNextInvoiceNumber, 
+    previewNextInvoiceNumber,
+    generateFromTemplate,
+    getCurrentTemplate 
+  } from '$lib/stores/invoiceCounter';
   const browser = typeof window !== 'undefined';
 
   let formData = $state({
@@ -42,30 +64,33 @@
   });
 
   let loading = $state(false);
-  let errorMessage = $state('');
-  let successMessage = $state('');
   let showSenderEntityManager = $state(false);
   let showClientEntityManager = $state(false);
   let showLineItemManager = $state(false);
+  let showPreview = $state(false);
+  let showInvoiceList = $state(false);
   let selectedMyBusiness: MyBusiness | null = $state(null);
   let selectedClient: Client | null = $state(null);
   let selectedLineItems: LineItem[] = $state([]);
+
+  // Validation state - using stores for proper reactivity
+  let fieldErrors = $state<Record<string, string>>({});
+  let showValidationErrors = $state(false);
+
+  // Subscribe to validation stores
+  validationErrors.subscribe((errors) => {
+    fieldErrors = errors;
+  });
+
+  showValidationStore.subscribe((show) => {
+    showValidationErrors = show;
+  });
 
   const STORAGE_KEY = 'invoice-form-data';
 
   // Load data from localStorage on mount
   onMount(() => {
     if (browser) {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsedData = JSON.parse(stored);
-          formData = { ...formData, ...parsedData };
-        } catch (e) {
-          console.error('Failed to parse stored data:', e);
-        }
-      }
-
       // Set defaults if not loaded from storage
       if (!formData.issueDate) {
         const today = new Date().toISOString().split('T')[0];
@@ -79,65 +104,20 @@
       }
 
       if (!formData.invoiceNumber) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        formData.invoiceNumber = `INV-${year}-${month}-${day}-001`;
+        formData.invoiceNumber = previewNextInvoiceNumber();
       }
     }
   });
 
-  // Save to localStorage whenever formData changes
-  $effect(() => {
-    if (browser && formData) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-    }
-  });
-
-
-  function showError(message: string) {
-    errorMessage = message;
-    successMessage = '';
-    setTimeout(() => {
-      errorMessage = '';
-    }, 5000);
-  }
-
-  function showSuccess(message: string) {
-    successMessage = message;
-    errorMessage = '';
-    setTimeout(() => {
-      successMessage = '';
-    }, 5000);
-  }
 
   function validateForm() {
-    const errors = [];
+    return validateFormData(formData);
+  }
 
-    if (!formData.sender.name) errors.push('Sender name is required');
-    if (!formData.sender.entityNumber)
-      errors.push('Sender entity number is required');
-    if (!formData.sender.address) errors.push('Sender address is required');
-    if (!formData.sender.city) errors.push('Sender city is required');
-    if (!formData.sender.country) errors.push('Sender country is required');
-
-    if (!formData.billTo.name) errors.push('Bill-to name is required');
-    if (!formData.billTo.address) errors.push('Bill-to address is required');
-    if (!formData.billTo.city) errors.push('Bill-to city is required');
-    if (!formData.billTo.country) errors.push('Bill-to country is required');
-
-    if (!formData.invoiceNumber) errors.push('Invoice number is required');
-    if (!formData.issueDate) errors.push('Issue date is required');
-    if (!formData.dueDate) errors.push('Due date is required');
-
-    const validItems = formData.items.filter(
-      (item) => item.description && !isNaN(item.qty) && !isNaN(item.unitPrice)
-    );
-    if (validItems.length === 0)
-      errors.push('At least one valid item is required');
-
-    return errors;
+  // Real-time validation function using store
+  function validateField(fieldPath: string, value: any) {
+    if (!showValidationErrors) return;
+    validateSingleField(fieldPath, formData);
   }
 
   function onMyBusinessSelect(entity: MyBusiness | null) {
@@ -151,7 +131,7 @@
         city: entity.city,
         country: entity.country,
         phone: entity.phone || '',
-        iban: entity.iban || ''
+        iban: entity.iban || '',
       };
     }
   }
@@ -166,7 +146,7 @@
         city: entity.city,
         state: entity.state || '',
         zip: entity.zip || '',
-        country: entity.country
+        country: entity.country,
       };
     }
   }
@@ -174,11 +154,11 @@
   function onLineItemsSelect(items: LineItem[]) {
     selectedLineItems = items;
     // Update form items with selected line items
-    formData.items = items.map(item => ({
+    formData.items = items.map((item) => ({
       description: item.description,
       period: '',
       qty: item.defaultQuantity,
-      unitPrice: item.unitPrice
+      unitPrice: item.unitPrice,
     }));
   }
 
@@ -187,9 +167,11 @@
       if (!selectedMyBusiness && formData.sender.name) {
         const businessData: Omit<MyBusiness, 'id'> = {
           ...formData.sender,
-          entityType: formData.sender.entityType as 'entrepreneurship' | 'company',
+          entityType: formData.sender.entityType as
+            | 'entrepreneurship'
+            | 'company',
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
         const businessId = await db.myBusinesses.add(businessData);
         selectedMyBusiness = { ...businessData, id: businessId };
@@ -199,14 +181,17 @@
         const clientData = {
           ...formData.billTo,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
         const clientId = await db.clients.add(clientData);
         selectedClient = { ...clientData, id: clientId };
       }
 
-      const totalAmount = formData.items.reduce((sum, item) => sum + (item.qty * item.unitPrice), 0);
-      
+      const totalAmount = formData.items.reduce(
+        (sum, item) => sum + item.qty * item.unitPrice,
+        0
+      );
+
       const invoiceData = {
         invoiceNumber: formData.invoiceNumber,
         issueDate: formData.issueDate,
@@ -214,13 +199,18 @@
         taxRate: formData.taxRate,
         myBusinessId: selectedMyBusiness?.id!,
         clientId: selectedClient?.id!,
-        items: formData.items.filter(item => item.description && !isNaN(item.qty) && !isNaN(item.unitPrice)).map(item => ({
-          ...item,
-          unit: 'units'
-        })),
+        items: formData.items
+          .filter(
+            (item) =>
+              item.description && !isNaN(item.qty) && !isNaN(item.unitPrice)
+          )
+          .map((item) => ({
+            ...item,
+            unit: 'units',
+          })),
         totalAmount: totalAmount,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       await db.invoices.add(invoiceData);
@@ -230,20 +220,101 @@
     }
   }
 
+  // Refresh invoice number to next available
+  function refreshInvoiceNumber() {
+    formData.invoiceNumber = previewNextInvoiceNumber();
+  }
+
+  // Load invoice data for editing
+  function onEditInvoice(invoice: any) {
+    // Load the invoice data into the form
+    formData.invoiceNumber = invoice.invoiceNumber;
+    formData.issueDate = invoice.issueDate;
+    formData.dueDate = invoice.dueDate;
+    formData.taxRate = invoice.taxRate;
+    
+    // Load sender data
+    if (invoice.myBusiness) {
+      formData.sender = {
+        name: invoice.myBusiness.name,
+        entityNumber: invoice.myBusiness.entityNumber,
+        entityType: invoice.myBusiness.entityType,
+        address: invoice.myBusiness.address,
+        city: invoice.myBusiness.city,
+        country: invoice.myBusiness.country,
+        phone: invoice.myBusiness.phone || '',
+        iban: invoice.myBusiness.iban || '',
+      };
+      selectedMyBusiness = invoice.myBusiness;
+    }
+    
+    // Load client data
+    if (invoice.client) {
+      formData.billTo = {
+        name: invoice.client.name,
+        companyNumber: invoice.client.companyNumber || '',
+        address: invoice.client.address,
+        city: invoice.client.city,
+        state: invoice.client.state || '',
+        zip: invoice.client.zip || '',
+        country: invoice.client.country,
+      };
+      selectedClient = invoice.client;
+    }
+    
+    // Load items
+    if (invoice.items && invoice.items.length > 0) {
+      formData.items = invoice.items.map((item: any) => ({
+        description: item.description,
+        period: item.period || '',
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+      }));
+    }
+    
+    // Close the invoice list and clear any validation errors
+    showInvoiceList = false;
+    clearAllErrors();
+    showValidationStore.set(false);
+    
+    showSuccess('Invoice Loaded', `Invoice ${invoice.invoiceNumber} loaded for editing.`);
+  }
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
-    errorMessage = '';
-    successMessage = '';
+
+    console.log('Form submitted, validating...');
+
+    // Clear existing errors and enable validation display
+    clearAllErrors();
+    showValidationStore.set(true);
 
     const errors = validateForm();
+    console.log('Validation errors:', errors);
+    console.log('Field errors:', fieldErrors);
+
     if (errors.length > 0) {
-      showError(errors.join(', '));
+      showError('Validation Error', 'Please fix the validation errors above before submitting.');
       return;
     }
 
     loading = true;
 
     try {
+      // Check if user modified the invoice number from the default preview
+      const currentPreview = previewNextInvoiceNumber();
+      
+      // If user changed the invoice number, treat it as a custom template
+      if (formData.invoiceNumber !== currentPreview && formData.invoiceNumber.trim()) {
+        // Use the user's custom format
+        const actualInvoiceNumber = generateFromTemplate(formData.invoiceNumber);
+        formData.invoiceNumber = actualInvoiceNumber;
+      } else {
+        // Use standard generation
+        const actualInvoiceNumber = generateNextInvoiceNumber();
+        formData.invoiceNumber = actualInvoiceNumber;
+      }
+      
       await saveEntitiesToDatabase();
 
       const payload = {
@@ -274,14 +345,17 @@
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
 
-        showSuccess('Invoice generated and downloaded successfully!');
+        showSuccess('Success!', 'Invoice generated and downloaded successfully!');
+        
+        // Refresh the invoice number for the next invoice
+        formData.invoiceNumber = previewNextInvoiceNumber();
       } else {
         const errorData = await response.json();
-        showError(errorData.error || 'Failed to generate invoice');
+        showError('Generation Failed', errorData.error || 'Failed to generate invoice');
       }
     } catch (error) {
       console.error('Error:', error);
-      showError('Network error occurred. Please try again.');
+      showError('Network Error', 'Network error occurred. Please try again.');
     } finally {
       loading = false;
     }
@@ -291,31 +365,63 @@
 <div class="min-h-screen bg-gradient-to-br from-purple-300 to-blue-300 p-5">
   <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-8">
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-4xl font-normal text-gray-800">
-        Invoice Generator
-      </h1>
+      <h1 class="text-4xl font-normal text-gray-800">Invoice Generator</h1>
+      <button
+        type="button"
+        onclick={() => (showInvoiceList = true)}
+        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Invoice History
+      </button>
     </div>
 
-
-
-    <form onsubmit={handleSubmit}>
+    <form onsubmit={handleSubmit} novalidate>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <SenderForm
           senderData={formData.sender}
-          selectedMyBusiness={selectedMyBusiness}
+          {selectedMyBusiness}
           showEntityManager={showSenderEntityManager}
-          onSenderDataChange={(data) => formData.sender = { ...data, entityType: (data.entityType === 'company' ? 'company' : 'entrepreneurship') as 'entrepreneurship' | 'company' }}
-          onMyBusinessSelect={onMyBusinessSelect}
-          onToggleEntityManager={() => showSenderEntityManager = !showSenderEntityManager}
+          onSenderDataChange={(data) => {
+            formData.sender = {
+              ...data,
+              entityType: (data.entityType === 'company'
+                ? 'company'
+                : 'entrepreneurship') as 'entrepreneurship' | 'company',
+            };
+            // Real-time validation for sender fields
+            if (showValidationErrors) {
+              validateField('sender.name', data.name);
+              validateField('sender.entityNumber', data.entityNumber);
+              validateField('sender.address', data.address);
+              validateField('sender.city', data.city);
+              validateField('sender.country', data.country);
+            }
+          }}
+          {onMyBusinessSelect}
+          onToggleEntityManager={() =>
+            (showSenderEntityManager = !showSenderEntityManager)}
         />
-        
+
         <BillToForm
           billToData={formData.billTo}
-          selectedClient={selectedClient}
+          {selectedClient}
           showEntityManager={showClientEntityManager}
-          onBillToDataChange={(data) => formData.billTo = data}
-          onClientSelect={onClientSelect}
-          onToggleEntityManager={() => showClientEntityManager = !showClientEntityManager}
+          onBillToDataChange={(data) => {
+            formData.billTo = data;
+            // Real-time validation for bill-to fields
+            if (showValidationErrors) {
+              validateField('billTo.name', data.name);
+              validateField('billTo.address', data.address);
+              validateField('billTo.city', data.city);
+              validateField('billTo.country', data.country);
+            }
+          }}
+          {onClientSelect}
+          onToggleEntityManager={() =>
+            (showClientEntityManager = !showClientEntityManager)}
         />
       </div>
 
@@ -324,31 +430,64 @@
           invoiceNumber: formData.invoiceNumber,
           taxRate: formData.taxRate,
           issueDate: formData.issueDate,
-          dueDate: formData.dueDate
+          dueDate: formData.dueDate,
         }}
         onInvoiceDataChange={(data) => {
           formData.invoiceNumber = data.invoiceNumber;
           formData.taxRate = data.taxRate;
           formData.issueDate = data.issueDate;
           formData.dueDate = data.dueDate;
+          // Real-time validation for invoice details
+          if (showValidationErrors) {
+            validateField('invoiceNumber', data.invoiceNumber);
+            validateField('issueDate', data.issueDate);
+            validateField('dueDate', data.dueDate);
+          }
         }}
+        onRefreshInvoiceNumber={refreshInvoiceNumber}
       />
 
       <InvoiceItems
         items={formData.items}
-        selectedLineItems={selectedLineItems}
-        showLineItemManager={showLineItemManager}
-        onItemsChange={(items) => formData.items = items}
-        onLineItemsSelect={onLineItemsSelect}
-        onToggleLineItemManager={() => showLineItemManager = !showLineItemManager}
+        {selectedLineItems}
+        {showLineItemManager}
+        onItemsChange={(items) => (formData.items = items)}
+        {onLineItemsSelect}
+        onToggleLineItemManager={() =>
+          (showLineItemManager = !showLineItemManager)}
       />
 
+      <!-- Items validation error -->
+      {#if showValidationErrors && fieldErrors['items']}
+        <div class="mt-2">
+          <p class="text-sm text-red-600">{fieldErrors['items']}</p>
+        </div>
+      {/if}
+
+      <!-- Preview Section -->
+      {#if showPreview}
+        <div class="pt-8 mt-8 border-t border-gray-200">
+          <div class="mb-8">
+            <InvoicePreview {formData} />
+          </div>
+        </div>
+      {/if}
+
       <!-- Generate Button -->
-      <div class="text-center mt-8 pt-8 border-t border-gray-200">
+      <div
+        class="text-center mt-8 pt-8 border-t flex justify-center gap-2 border-gray-200"
+      >
+        <button
+          type="button"
+          onclick={() => (showPreview = !showPreview)}
+          class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors text-md font-medium"
+        >
+          {showPreview ? 'Hide Preview' : 'Show Preview'}
+        </button>
         <button
           type="submit"
           disabled={loading}
-          class="bg-purple-600 text-white px-8 py-3 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-medium"
+          class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-md font-medium"
         >
           {loading ? 'Generating...' : 'Generate Invoice PDF'}
         </button>
@@ -356,23 +495,17 @@
         {#if loading}
           <div class="text-purple-600 text-lg mt-3">Generating invoice...</div>
         {/if}
-
-        {#if errorMessage}
-          <div
-            class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mt-4"
-          >
-            {errorMessage}
-          </div>
-        {/if}
-
-        {#if successMessage}
-          <div
-            class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mt-4"
-          >
-            {successMessage}
-          </div>
-        {/if}
       </div>
     </form>
   </div>
+  
+  <!-- Invoice List Component -->
+  <InvoiceList
+    isOpen={showInvoiceList}
+    onClose={() => (showInvoiceList = false)}
+    onEditInvoice={onEditInvoice}
+  />
+  
+  <!-- Toast Notifications -->
+  <ToastContainer />
 </div>

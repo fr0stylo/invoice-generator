@@ -1,0 +1,78 @@
+# Page snapshot
+
+```yaml
+- heading "Invoice Generator" [level=1]
+- button "Invoice History":
+  - img
+  - text: Invoice History
+- heading "From (My Business)" [level=2]
+- button "Show Business"
+- text: Name *
+- textbox "Name *"
+- text: Entity Number *
+- textbox "Entity Number *"
+- group "Entity Type *":
+  - text: Entity Type *
+  - radio "Individual Entrepreneurship" [checked]
+  - text: Individual Entrepreneurship
+  - radio "Company"
+  - text: Company
+- text: Address *
+- textbox "Address *"
+- text: City *
+- textbox "City *"
+- text: Country *
+- textbox "Country *"
+- text: Phone
+- textbox "Phone"
+- text: IBAN
+- textbox "IBAN"
+- heading "To (Client)" [level=2]
+- button "Show Client"
+- text: Name *
+- textbox "Name *"
+- text: Company Number
+- textbox "Company Number"
+- text: Address *
+- textbox "Address *"
+- text: City *
+- textbox "City *"
+- text: State
+- textbox "State"
+- text: ZIP Code
+- textbox "ZIP Code"
+- text: Country *
+- textbox "Country *"
+- heading "Invoice Details" [level=2]
+- text: Invoice Number *
+- textbox "Invoice Number *": INV-2025-07-12-001
+- button "Edit template":
+  - img
+- button "Refresh invoice number":
+  - img
+- text: Tax Rate (%)
+- spinbutton "Tax Rate (%)": "0"
+- text: Issue Date *
+- textbox "Issue Date *": 2025-07-12
+- text: Due Date *
+- textbox "Due Date *": 2025-08-11
+- heading "Invoice Items" [level=2]
+- text: Description *
+- textbox "Description *"
+- text: Period
+- textbox "Period"
+- text: Qty *
+- spinbutton "Qty *": "1"
+- text: Price (€) *
+- spinbutton "Price (€) *": "0"
+- button "Remove item":
+  - img
+- button "Add Item":
+  - img
+  - text: Add Item
+- button "Manage Line Items":
+  - img
+  - text: Manage Line Items
+- button "Show Preview"
+- button "Generate Invoice PDF"
+```

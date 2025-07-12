@@ -1,5 +1,6 @@
 <script lang="ts">
   import EntityManager from './EntityManager.svelte';
+  import ValidatedField from './ValidatedField.svelte';
   import type { Client } from '$lib/database';
 
   interface Props {
@@ -45,9 +46,9 @@
       <button
         type="button"
         onclick={onToggleEntityManager}
-        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md transition-colors text-sm"
+        class="bg-blue-500 hover:bg-blue-600 text-white  px-4 py-2  rounded-md transition-colors text-sm"
       >
-        {showEntityManager ? 'Hide' : 'Show'} Contacts
+        {showEntityManager ? 'Hide' : 'Show'} Client
       </button>
     </div>
   </div>
@@ -63,106 +64,64 @@
   {/if}
 
   <div class="space-y-4">
-    <div>
-      <label
-        for="billToName"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Name *</label>
-      <input
-        id="billToName"
-        type="text"
-        value={billToData.name}
-        oninput={(e) => updateBillToData('name', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToName"
+      label="Name"
+      value={billToData.name}
+      required={true}
+      fieldPath="billTo.name"
+      oninput={(value) => updateBillToData('name', value)}
+    />
 
-    <div>
-      <label
-        for="billToCompanyNumber"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Company Number</label>
-      <input
-        id="billToCompanyNumber"
-        type="text"
-        value={billToData.companyNumber}
-        oninput={(e) => updateBillToData('companyNumber', (e.target as HTMLInputElement).value)}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToCompanyNumber"
+      label="Company Number"
+      value={billToData.companyNumber}
+      fieldPath="billTo.companyNumber"
+      oninput={(value) => updateBillToData('companyNumber', value)}
+    />
 
-    <div>
-      <label
-        for="billToAddress"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Address *</label>
-      <input
-        id="billToAddress"
-        type="text"
-        value={billToData.address}
-        oninput={(e) => updateBillToData('address', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToAddress"
+      label="Address"
+      value={billToData.address}
+      required={true}
+      fieldPath="billTo.address"
+      oninput={(value) => updateBillToData('address', value)}
+    />
 
-    <div>
-      <label
-        for="billToCity"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >City *</label>
-      <input
-        id="billToCity"
-        type="text"
-        value={billToData.city}
-        oninput={(e) => updateBillToData('city', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToCity"
+      label="City"
+      value={billToData.city}
+      required={true}
+      fieldPath="billTo.city"
+      oninput={(value) => updateBillToData('city', value)}
+    />
 
-    <div>
-      <label
-        for="billToState"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >State</label>
-      <input
-        id="billToState"
-        type="text"
-        value={billToData.state}
-        oninput={(e) => updateBillToData('state', (e.target as HTMLInputElement).value)}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToState"
+      label="State"
+      value={billToData.state}
+      fieldPath="billTo.state"
+      oninput={(value) => updateBillToData('state', value)}
+    />
 
-    <div>
-      <label
-        for="billToZip"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >ZIP Code</label>
-      <input
-        id="billToZip"
-        type="text"
-        value={billToData.zip}
-        oninput={(e) => updateBillToData('zip', (e.target as HTMLInputElement).value)}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToZip"
+      label="ZIP Code"
+      value={billToData.zip}
+      fieldPath="billTo.zip"
+      oninput={(value) => updateBillToData('zip', value)}
+    />
 
-    <div>
-      <label
-        for="billToCountry"
-        class="block text-sm font-medium text-gray-700 mb-1"
-      >Country *</label>
-      <input
-        id="billToCountry"
-        type="text"
-        value={billToData.country}
-        oninput={(e) => updateBillToData('country', (e.target as HTMLInputElement).value)}
-        required
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-      />
-    </div>
+    <ValidatedField
+      id="billToCountry"
+      label="Country"
+      value={billToData.country}
+      required={true}
+      fieldPath="billTo.country"
+      oninput={(value) => updateBillToData('country', value)}
+    />
   </div>
 </div>
